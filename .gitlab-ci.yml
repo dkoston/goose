@@ -14,6 +14,7 @@ test:unit:
     - mkdir -p /go/src/git.help.com/helpdotcom/goose
     - cp -R /builds/helpdotcom/goose/* /go/src/git.help.com/helpdotcom/goose
     - cd /go/src/git.help.com/helpdotcom/goose
+    - make clean
     - make test
 
 
@@ -24,6 +25,7 @@ deploy_bundle_to_staging:
     - mkdir -p /go/src/git.help.com/helpdotcom/goose
     - cp -R /builds/helpdotcom/goose/* /go/src/git.help.com/helpdotcom/goose
     - cd /go/src/git.help.com/helpdotcom/goose
+    - make clean
     - make
     - touch .npmrc
     - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
