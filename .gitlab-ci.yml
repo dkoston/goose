@@ -1,0 +1,33 @@
+stages:
+  - test
+  - build
+  - release
+
+variables:
+  SERVICE_NAME: chat-client-web
+  DOCKER_IMAGE: "gcr.io/help-1272/${SERVICE_NAME}:latest"
+
+test:unit:
+  image: gcr.io/help-1272/golang:1.6
+  stage: test
+  script:
+    - mkdir -p /go/src/git.help.com/helpdotcom/goose
+    - cp -R /builds/helpdotcom/goose/* /go/src/git.help.com/helpdotcom/goose
+    - cd /go/src/git.help.com/helpdotcom/goose
+    - make test
+
+
+deploy_bundle_to_staging:
+  image: gcr.io/help-1272/golang:1.6
+  stage: release
+  script:
+    - mkdir -p /go/src/git.help.com/helpdotcom/goose
+    - cp -R /builds/helpdotcom/goose/* /go/src/git.help.com/helpdotcom/goose
+    - cd /go/src/git.help.com/helpdotcom/goose
+    - make
+    - touch .npmrc
+    - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+    - npm install --loglevel=warn --spin=false
+    - node ./tools/gcloud-upload.js ${GOOGLE_CLOUD_USER} "${GOOGLE_CLOUD_PRIVATE_KEY}"
+  only:
+    - master

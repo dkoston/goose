@@ -8,7 +8,8 @@ You can manage your database's evolution by creating incremental SQL or Go scrip
 
 # Install
 
-    $ go get bitbucket.org/liamstask/goose/cmd/goose
+    clone this repo into $GOPATH/git.help.com/helpdotcom/goose
+    run: `make install`
 
 This will install the `goose` binary to your `$GOPATH/bin` directory.
 
