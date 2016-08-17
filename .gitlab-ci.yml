@@ -27,9 +27,6 @@ deploy_bundle_to_staging:
     - cd /go/src/git.help.com/helpdotcom/goose
     - make clean
     - make
-    - touch .npmrc
-    - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
-    - npm install --loglevel=warn --spin=false
-    - node ./tools/gcloud-upload.js ${GOOGLE_CLOUD_USER} "${GOOGLE_CLOUD_PRIVATE_KEY}"
+    - gsutil cp /go/src/git.help.com/helpdotcom/goose/cmd/goose/goose gs://helpdotcom-binaries
   only:
     - master
