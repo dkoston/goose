@@ -145,3 +145,32 @@ CREATE TABLE fancier_post (
 -- +goose Down
 DROP TABLE fancier_post;
 `
+
+func TestUseTransactions(t *testing.T) {
+	type testData struct {
+		fileName        string
+		useTransactions bool
+	}
+
+	tests := []testData{
+		{
+			fileName:       "../../db-sample/migrations/001_basics.sql",
+			useTransactions: true,
+		},
+		{
+			fileName:       "../../db-sample/migrations/002_next.sql",
+			useTransactions: true,
+		},
+		{
+			fileName:       "../../db-sample/migrations/003_no_transactions.sql",
+			useTransactions: false,
+		},
+	}
+
+	for _, test := range tests {
+		result := useTransactions(test.fileName)
+		if result != test.useTransactions {
+			t.Errorf("Failed transaction check. got %v, want %v", result, test.useTransactions)
+		}
+	}
+}

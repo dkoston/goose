@@ -372,7 +372,7 @@ func CreateMigration(name, migrationType, dir string, t time.Time) (path string,
 
 // Update the version table for the given migration,
 // and finalize the transaction.
-func FinalizeMigration(conf *DBConf, txn *sql.Tx, direction bool, v int64) error {
+func FinalizeMigrationTx(conf *DBConf, txn *sql.Tx, direction bool, v int64) error {
 
 	// XXX: drop goose_db_version table on some minimum version number?
 	stmt := conf.Driver.Dialect.insertVersionSql()
@@ -383,6 +383,20 @@ func FinalizeMigration(conf *DBConf, txn *sql.Tx, direction bool, v int64) error
 
 	return txn.Commit()
 }
+
+// Update the version for the given migration
+func FinalizeMigration(conf *DBConf, db *sql.DB, direction bool, v int64) error {
+
+	// XXX: drop goose_db_version table on some minimum version number?
+	stmt := conf.Driver.Dialect.insertVersionSql()
+	if _, err := db.Exec(stmt, v, direction); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
 
 var goMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`
 package main

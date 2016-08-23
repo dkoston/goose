@@ -147,6 +147,11 @@ language plpgsql;
 -- +goose StatementEnd
 ```
 
+### Running migrations without transactions (not supported for Go migrations)
+
+By default, all migrations are run within a transaction. Though, some statements like `CREATE DATABASE` cannot be run within a transaction. To skip transactions, add a comment at the top of your migration file that looks like `-- NO TRANSACTIONS --`. In this case, migrations within this file (Up and Down) will by run without any wrapping transaction.
+
+
 ## Go Migrations
 
 A sample Go migration looks like:
