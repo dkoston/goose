@@ -160,7 +160,7 @@ func useTransactions(scriptFile string) bool {
 //
 // All statements following an Up or Down directive are grouped together
 // until another direction directive is found.
-func runSQLMigration(conf *DBConf, db *sql.DB, scriptFile string, v int64, direction bool) error {
+func runSQLMigration(conf *DBConf, db *sql.DB, scriptFile string, v int64, direction bool, tablePrefix string) error {
 	filePath := filepath.Base(scriptFile)
 	useTx := useTransactions(scriptFile)
 
@@ -170,12 +170,12 @@ func runSQLMigration(conf *DBConf, db *sql.DB, scriptFile string, v int64, direc
 	}
 
 	if useTx {
-		err := runMigrationInTransaction(conf, db, f, v, direction, filePath)
+		err := runMigrationInTransaction(conf, db, f, v, direction, filePath, tablePrefix)
 		if err != nil {
 			log.Fatalf("FAIL (tx) %s (%v), quitting migration.", filePath, err)
 		}
 	} else {
-		err = runMigrationWithoutTransaction(conf, db, f, v, direction, filePath)
+		err = runMigrationWithoutTransaction(conf, db, f, v, direction, filePath, tablePrefix)
 		if err != nil {
 			log.Fatalf("FAIL (no tx) %s (%v), quitting migration.", filePath, err)
 		}
@@ -187,7 +187,7 @@ func runSQLMigration(conf *DBConf, db *sql.DB, scriptFile string, v int64, direc
 }
 
 // Run the migration within a transaction (recommended)
-func runMigrationInTransaction(conf *DBConf, db *sql.DB, r io.Reader, v int64, direction bool, filePath string) error {
+func runMigrationInTransaction(conf *DBConf, db *sql.DB, r io.Reader, v int64, direction bool, filePath string, tablePrefix string) error {
 	txn, err := db.Begin()
 	if err != nil {
 		log.Fatal("db.Begin:", err)
@@ -205,14 +205,14 @@ func runMigrationInTransaction(conf *DBConf, db *sql.DB, r io.Reader, v int64, d
 		}
 	}
 
-	if err = FinalizeMigrationTx(conf, txn, direction, v); err != nil {
+	if err = FinalizeMigrationTx(conf, txn, direction, v, tablePrefix); err != nil {
 		log.Fatalf("error finalizing migration %s, quitting. (%v)", filePath, err)
 	}
 
 	return nil
 }
 
-func runMigrationWithoutTransaction(conf *DBConf, db *sql.DB, r io.Reader, v int64, direction bool, filePath string) error {
+func runMigrationWithoutTransaction(conf *DBConf, db *sql.DB, r io.Reader, v int64, direction bool, filePath string, tablePrefix string) error {
 
 	for _, query := range splitSQLStatements(r, direction) {
 		if _, err := db.Exec(query); err != nil {
@@ -220,7 +220,7 @@ func runMigrationWithoutTransaction(conf *DBConf, db *sql.DB, r io.Reader, v int
 		}
 	}
 
-	if err := FinalizeMigration(conf, db, direction, v); err != nil {
+	if err := FinalizeMigration(conf, db, direction, v, tablePrefix); err != nil {
 		log.Fatalf("error finalizing migration %s, quitting. (%v)", filePath, err)
 	}
 

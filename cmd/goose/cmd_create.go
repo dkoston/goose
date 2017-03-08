@@ -11,9 +11,9 @@ import (
 
 var createCmd = &Command{
 	Name:    "create",
-	Usage:   "",
+	Usage:   "create [name] [type]",
 	Summary: "Create the scaffolding for a new migration",
-	Help:    `create extended help here...`,
+	Help:    `type is either go or sql`,
 	Run:     createRun,
 }
 

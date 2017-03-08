@@ -7,6 +7,7 @@ import (
 	"log"
 	"path/filepath"
 	"time"
+	"bytes"
 )
 
 var statusCmd = &Command{
@@ -23,6 +24,11 @@ type StatusData struct {
 }
 
 func statusRun(cmd *Command, args ...string) {
+	tablePrefix := "goose"
+
+	if len(args) >= 1 {
+		tablePrefix = args[0]
+	}
 
 	conf, err := dbConfFromFlags()
 	if err != nil {
@@ -44,7 +50,7 @@ func statusRun(cmd *Command, args ...string) {
 	defer db.Close()
 
 	// must ensure that the version table exists if we're running on a pristine DB
-	if _, e := goose.EnsureDBVersion(conf, db); e != nil {
+	if _, e := goose.EnsureDBVersion(conf, db, tablePrefix); e != nil {
 		log.Fatal(e)
 	}
 
@@ -52,14 +58,15 @@ func statusRun(cmd *Command, args ...string) {
 	fmt.Println("    Applied At                  Migration")
 	fmt.Println("    =======================================")
 	for _, m := range migrations {
-		printMigrationStatus(db, m.Version, filepath.Base(m.Source))
+		printMigrationStatus(db, m.Version, filepath.Base(m.Source), tablePrefix)
 	}
 }
 
-func printMigrationStatus(db *sql.DB, version int64, script string) {
+func printMigrationStatus(db *sql.DB, version int64, script string, tablePrefix string) {
 	var row goose.MigrationRecord
-	q := fmt.Sprintf("SELECT tstamp, is_applied FROM goose_db_version WHERE version_id=%d ORDER BY tstamp DESC LIMIT 1", version)
-	e := db.QueryRow(q).Scan(&row.TStamp, &row.IsApplied)
+	tableName := getVersionTableName(tablePrefix)
+	statement := fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id=%d ORDER BY tstamp DESC LIMIT 1", tableName, version)
+	e := db.QueryRow(statement).Scan(&row.TStamp, &row.IsApplied)
 
 	if e != nil && e != sql.ErrNoRows {
 		log.Fatal(e)
@@ -74,4 +81,12 @@ func printMigrationStatus(db *sql.DB, version int64, script string) {
 	}
 
 	fmt.Printf("    %-24s -- %v\n", appliedAt, script)
+}
+
+// get the tablename used for migrations
+func getVersionTableName(tablePrefix string) string {
+	var buffer bytes.Buffer
+	buffer.WriteString(tablePrefix)
+	buffer.WriteString("_db_version")
+	return buffer.String()
 }

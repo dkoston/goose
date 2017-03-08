@@ -34,7 +34,7 @@ func init() {
 // original .go migration, and execute it via `go run` along
 // with a main() of our own creation.
 //
-func runGoMigration(conf *DBConf, path string, version int64, direction bool) error {
+func runGoMigration(conf *DBConf, path string, version int64, direction bool, tablePrefix string) error {
 
 	// everything gets written to a temp dir, and zapped afterwards
 	d, e := ioutil.TempDir("", "goose")
@@ -69,7 +69,7 @@ func runGoMigration(conf *DBConf, path string, version int64, direction bool) er
 		Conf:       sb.String(),
 		Direction:  direction,
 		Func:       fmt.Sprintf("%v_%v", directionStr, version),
-		InsertStmt: conf.Driver.Dialect.insertVersionSql(),
+		InsertStmt: conf.Driver.Dialect.insertVersionSql(tablePrefix),
 	}
 	main, e := writeTemplateToFile(filepath.Join(d, "goose_main.go"), goMigrationDriverTemplate, td)
 	if e != nil {

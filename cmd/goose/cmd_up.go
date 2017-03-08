@@ -7,13 +7,18 @@ import (
 
 var upCmd = &Command{
 	Name:    "up",
-	Usage:   "",
+	Usage:   "up [migration_table_prefix]",
 	Summary: "Migrate the DB to the most recent version available",
-	Help:    `up extended help here...`,
+	Help:    `migration_table_prefix should be ^[a-z_]+$`,
 	Run:     upRun,
 }
 
 func upRun(cmd *Command, args ...string) {
+	tablePrefix := "goose"
+
+	if len(args) >= 1 {
+		tablePrefix = args[0]
+	}
 
 	conf, err := dbConfFromFlags()
 	if err != nil {
@@ -25,7 +30,7 @@ func upRun(cmd *Command, args ...string) {
 		log.Fatal(err)
 	}
 
-	if err := goose.RunMigrations(conf, conf.MigrationsDir, target); err != nil {
+	if err := goose.RunMigrations(conf, conf.MigrationsDir, target, tablePrefix); err != nil {
 		log.Fatal(err)
 	}
 }

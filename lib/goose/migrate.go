@@ -48,7 +48,7 @@ func newMigration(v int64, src string) *Migration {
 	return &Migration{v, -1, -1, src}
 }
 
-func RunMigrations(conf *DBConf, migrationsDir string, target int64) (err error) {
+func RunMigrations(conf *DBConf, migrationsDir string, target int64, tablePrefix string) (err error) {
 
 	db, err := OpenDBFromDBConf(conf)
 	if err != nil {
@@ -56,12 +56,12 @@ func RunMigrations(conf *DBConf, migrationsDir string, target int64) (err error)
 	}
 	defer db.Close()
 
-	return RunMigrationsOnDb(conf, migrationsDir, target, db)
+	return RunMigrationsOnDb(conf, migrationsDir, target, db, tablePrefix)
 }
 
 // Runs migration on a specific database instance.
-func RunMigrationsOnDb(conf *DBConf, migrationsDir string, target int64, db *sql.DB) (err error) {
-	current, err := EnsureDBVersion(conf, db)
+func RunMigrationsOnDb(conf *DBConf, migrationsDir string, target int64, db *sql.DB, tablePrefix string) (err error) {
+	current, err := EnsureDBVersion(conf, db, tablePrefix)
 	if err != nil {
 		return err
 	}
@@ -87,9 +87,9 @@ func RunMigrationsOnDb(conf *DBConf, migrationsDir string, target int64, db *sql
 
 		switch filepath.Ext(m.Source) {
 		case ".go":
-			err = runGoMigration(conf, m.Source, m.Version, direction)
+			err = runGoMigration(conf, m.Source, m.Version, direction, tablePrefix)
 		case ".sql":
-			err = runSQLMigration(conf, db, m.Source, m.Version, direction)
+			err = runSQLMigration(conf, db, m.Source, m.Version, direction, tablePrefix)
 		}
 
 		if err != nil {
@@ -192,12 +192,12 @@ func NumericComponent(name string) (int64, error) {
 
 // retrieve the current version for this DB.
 // Create and initialize the DB version table if it doesn't exist.
-func EnsureDBVersion(conf *DBConf, db *sql.DB) (int64, error) {
+func EnsureDBVersion(conf *DBConf, db *sql.DB, tablePrefix string) (int64, error) {
 
-	rows, err := conf.Driver.Dialect.dbVersionQuery(db)
+	rows, err := conf.Driver.Dialect.dbVersionQuery(db, tablePrefix)
 	if err != nil {
 		if err == ErrTableDoesNotExist {
-			return 0, createVersionTable(conf, db)
+			return 0, createVersionTable(conf, db, tablePrefix)
 		}
 		return 0, err
 	}
@@ -242,7 +242,7 @@ func EnsureDBVersion(conf *DBConf, db *sql.DB) (int64, error) {
 
 // Create the goose_db_version table
 // and insert the initial 0 value into it
-func createVersionTable(conf *DBConf, db *sql.DB) error {
+func createVersionTable(conf *DBConf, db *sql.DB, tablePrefix string) error {
 	txn, err := db.Begin()
 	if err != nil {
 		return err
@@ -250,14 +250,14 @@ func createVersionTable(conf *DBConf, db *sql.DB) error {
 
 	d := conf.Driver.Dialect
 
-	if _, err := txn.Exec(d.createVersionTableSql()); err != nil {
+	if _, err := txn.Exec(d.createVersionTableSql(tablePrefix)); err != nil {
 		txn.Rollback()
 		return err
 	}
 
 	version := 0
 	applied := true
-	if _, err := txn.Exec(d.insertVersionSql(), version, applied); err != nil {
+	if _, err := txn.Exec(d.insertVersionSql(tablePrefix), version, applied); err != nil {
 		txn.Rollback()
 		return err
 	}
@@ -267,7 +267,7 @@ func createVersionTable(conf *DBConf, db *sql.DB) error {
 
 // wrapper for EnsureDBVersion for callers that don't already have
 // their own DB instance
-func GetDBVersion(conf *DBConf) (version int64, err error) {
+func GetDBVersion(conf *DBConf, tablePrefix string) (version int64, err error) {
 
 	db, err := OpenDBFromDBConf(conf)
 	if err != nil {
@@ -275,7 +275,7 @@ func GetDBVersion(conf *DBConf) (version int64, err error) {
 	}
 	defer db.Close()
 
-	version, err = EnsureDBVersion(conf, db)
+	version, err = EnsureDBVersion(conf, db, tablePrefix)
 	if err != nil {
 		return -1, err
 	}
@@ -372,10 +372,10 @@ func CreateMigration(name, migrationType, dir string, t time.Time) (path string,
 
 // Update the version table for the given migration,
 // and finalize the transaction.
-func FinalizeMigrationTx(conf *DBConf, txn *sql.Tx, direction bool, v int64) error {
+func FinalizeMigrationTx(conf *DBConf, txn *sql.Tx, direction bool, v int64, tablePrefix string) error {
 
 	// XXX: drop goose_db_version table on some minimum version number?
-	stmt := conf.Driver.Dialect.insertVersionSql()
+	stmt := conf.Driver.Dialect.insertVersionSql(tablePrefix)
 	if _, err := txn.Exec(stmt, v, direction); err != nil {
 		txn.Rollback()
 		return err
@@ -385,10 +385,10 @@ func FinalizeMigrationTx(conf *DBConf, txn *sql.Tx, direction bool, v int64) err
 }
 
 // Update the version for the given migration
-func FinalizeMigration(conf *DBConf, db *sql.DB, direction bool, v int64) error {
+func FinalizeMigration(conf *DBConf, db *sql.DB, direction bool, v int64, tablePrefix string) error {
 
 	// XXX: drop goose_db_version table on some minimum version number?
-	stmt := conf.Driver.Dialect.insertVersionSql()
+	stmt := conf.Driver.Dialect.insertVersionSql(tablePrefix)
 	if _, err := db.Exec(stmt, v, direction); err != nil {
 		return err
 	}
