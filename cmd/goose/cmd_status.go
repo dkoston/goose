@@ -1,7 +1,7 @@
 package main
 
 import (
-	"git.help.com/helpdotcom/goose/lib/goose"
+	"git.help.com/goose/lib/goose"
 	"database/sql"
 	"fmt"
 	"log"

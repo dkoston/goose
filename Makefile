@@ -1,5 +1,5 @@
 build:
-	cwd=$(pwd 2>&1) && cd cmd/goose && go get . && go build . && cd ${cwd}
+	cwd=$(pwd 2>&1) && cd cmd/goose && go get . && go build -ldflags=-s . && cd ${cwd}
 
 install: build
 	cp cmd/goose/goose ${GOPATH}/bin/
@@ -7,6 +7,6 @@ install: build
 test:
 	cwd=$(pwd 2>&1) && cd lib/goose && go get . && go test && cd ${cwd}
 
-.PHONY: clean
+.PHONY: clean test all
 clean:
 	rm -f cmd/goose/goose

@@ -154,15 +154,11 @@ func TestUseTransactions(t *testing.T) {
 
 	tests := []testData{
 		{
-			fileName:       "../../db-sample/migrations/001_basics.sql",
+			fileName:       "../../db/migrations/001_basics.sql",
 			useTransactions: true,
 		},
 		{
-			fileName:       "../../db-sample/migrations/002_next.sql",
-			useTransactions: true,
-		},
-		{
-			fileName:       "../../db-sample/migrations/003_no_transactions.sql",
+			fileName:       "../../db/migrations/002_no_transactions.sql",
 			useTransactions: false,
 		},
 	}

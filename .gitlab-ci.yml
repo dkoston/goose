@@ -3,10 +3,6 @@ stages:
   - build
   - release
 
-variables:
-  SERVICE_NAME: chat-client-web
-  DOCKER_IMAGE: "gcr.io/help-1272/${SERVICE_NAME}:latest"
-
 test:unit:
   image: gcr.io/help-1272/golang:1.6
   stage: test
@@ -16,6 +12,16 @@ test:unit:
     - cd /go/src/git.help.com/helpdotcom/goose
     - make clean
     - make test
+
+test:integration:
+  image: gcr.io/help-1272/node:release
+  stage: test
+  script:
+    - touch ~/.npmrc
+    - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+    - npm install -g @helpdotcom/docker-runner
+    - docker login -u="_json_key" -p="$DOCKER_PASSWORD" gcr.io
+    - docker-runner -f compose/docker-compose.yml -e --no-pull
 
 
 deploy_bundle_to_staging:

@@ -88,6 +88,8 @@ func RunMigrationsOnDb(conf *DBConf, migrationsDir string, target int64, db *sql
 		switch filepath.Ext(m.Source) {
 		case ".go":
 			err = runGoMigration(conf, m.Source, m.Version, direction, tablePrefix)
+		case ".js":
+			err = runJSMigration(conf, db, m.Source, m.Version, direction, tablePrefix)
 		case ".sql":
 			err = runSQLMigration(conf, db, m.Source, m.Version, direction, tablePrefix)
 		}
@@ -173,7 +175,7 @@ func NumericComponent(name string) (int64, error) {
 
 	base := filepath.Base(name)
 
-	if ext := filepath.Ext(base); ext != ".go" && ext != ".sql" {
+	if ext := filepath.Ext(base); ext != ".go" && ext != ".sql" && ext != ".js" {
 		return 0, errors.New("not a recognized migration file type")
 	}
 
@@ -349,8 +351,8 @@ func GetMostRecentDBVersion(dirpath string) (version int64, err error) {
 
 func CreateMigration(name, migrationType, dir string, t time.Time) (path string, err error) {
 
-	if migrationType != "go" && migrationType != "sql" {
-		return "", errors.New("migration type must be 'go' or 'sql'")
+	if migrationType != "go" && migrationType != "js" && migrationType != "sql" {
+		return "", errors.New("migration type must be 'go', 'js', or 'sql'")
 	}
 
 	timestamp := t.Format("20060102150405")
@@ -361,8 +363,12 @@ func CreateMigration(name, migrationType, dir string, t time.Time) (path string,
 	var tmpl *template.Template
 	if migrationType == "sql" {
 		tmpl = sqlMigrationTemplate
-	} else {
+	} else if (migrationType == "go") {
 		tmpl = goMigrationTemplate
+	} else if (migrationType == "js") {
+		tmpl = jsMigrationTemplate
+	} else {
+		log.Fatalf("Migration type %v not supported", migrationType)
 	}
 
 	path, err = writeTemplateToFile(fpath, tmpl, timestamp)
@@ -424,4 +430,10 @@ var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Par
 -- +goose Down
 -- SQL section 'Down' is executed when this migration is rolled back
 
+`))
+
+var jsMigrationTemplate = template.Must(template.New("goose.js-migration"). Parse(`
+// JavaScript migrations are run with "node filename.js"
+// YOU are responsible for handling transaction control inside your migration
+// Be careful!
 `))

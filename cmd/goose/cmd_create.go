@@ -1,7 +1,7 @@
 package main
 
 import (
-	"git.help.com/helpdotcom/goose/lib/goose"
+	"git.help.com/goose/lib/goose"
 	"fmt"
 	"log"
 	"os"
@@ -13,7 +13,7 @@ var createCmd = &Command{
 	Name:    "create",
 	Usage:   "create [name] [type]",
 	Summary: "Create the scaffolding for a new migration",
-	Help:    `type is either go or sql`,
+	Help:    `type is either go, js, or sql`,
 	Run:     createRun,
 }
 
@@ -23,7 +23,7 @@ func createRun(cmd *Command, args ...string) {
 		log.Fatal("goose create: migration name required")
 	}
 
-	migrationType := "go" // default to Go migrations
+	migrationType := "sql" // default to SQL migrations
 	if len(args) >= 2 {
 		migrationType = args[1]
 	}
