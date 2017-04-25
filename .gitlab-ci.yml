@@ -23,20 +23,19 @@ test:integration:
     - docker login -u="_json_key" -p="$DOCKER_PASSWORD" gcr.io
     - docker-runner -f compose/docker-compose.yml -e --no-pull
 
-
-deploy_bundle_to_staging:
+deploy_to_google_cloud:
   image: gcr.io/help-1272/golang:1.6
   stage: release
   script:
-    - mkdir -p /go/src/git.help.com/helpdotcom/goose
-    - cp -R $CI_PROJECT_DIR/* /go/src/git.help.com/helpdotcom/goose
-    - cd /go/src/git.help.com/helpdotcom/goose
+    - mkdir -p /go/src/git.help.com/goose
+    - cp -R $CI_PROJECT_DIR/* /go/src/git.help.com/goose
+    - cd /go/src/git.help.com/goose
     - make clean
     - make
     - touch ~/google_cloud_storage_key.json
     - echo ${GOOGLE_CLOUD_STORAGE_PASSWORD} > ~/google_cloud_storage_key.json
     - gcloud auth activate-service-account --key-file ~/google_cloud_storage_key.json
-    - gsutil cp /go/src/git.help.com/helpdotcom/goose/cmd/goose/goose gs://helpdotcom-binaries
+    - gsutil cp /go/src/git.help.com/goose/cmd/goose/goose gs://helpdotcom-binaries
     - gsutil acl ch -u AllUsers:R gs://helpdotcom-binaries/goose
   only:
     - master
