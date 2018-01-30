@@ -1,7 +1,7 @@
 package main
 
 import (
-	"git.help.com/goose/lib/goose"
+	"github.com/dkoston/goose/lib/goose"
 	"log"
 )
 
